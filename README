@@ -1,0 +1,22 @@
+Census Download Tool
+
+This is a tool to assist in downloading targeted census data.  The 
+program is controlled by the properties file.
+
+The properties file should include:
+InputTable=P:\\Ath\\To\\A\\DBF\\File
+StateField=The state FIPS code field name (such as Statefp10)
+CountyField=The county FIPS code field name (such as Countyfp10)
+TractField=The tract FIPS code field name (such as Tractce10)
+CensusAPIKey=Your census API key
+DataSource=The data source to query.  MUST BE EITHER acs5 or sf1
+DataLists=The number of data lists to query.
+DataList1=The fields to query
+DataList2=The fields to query
+...
+
+Keywords: Census API, data Census
+
+Author: Andrew Rohne, OKI Regional Council
+Date: 1/3/2013
+Language: Java
