@@ -1,6 +1,7 @@
 package org.oki.transmodel.censusDownloader;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -17,11 +18,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-
-
-
 
 public class GetCensus {
 	public static Properties jConfig;	
@@ -69,14 +66,14 @@ public class GetCensus {
 							censusBG[dl].add(json.get(i));
 						}
 					}
-					
-					censusURL="http://thedataweb.rm.census.gov/data/2010/"+jConfig.getProperty("DataSource")+"?key="+jConfig.getProperty("CensusAPIKey")+"&get="+jConfig.getProperty(dataListToDo)+"&for=tract:*&in=state:"+state+"+county:"+county;
+					 
+					censusURL="http://thedataweb.rm.census.gov/data/2010/"+jConfig.getProperty("DataSource")+"?key="+jConfig.getProperty("CensusAPIKey")+"&get="+jConfig.getProperty(dataListToDo)+"&for=tract:"+tract+"&in=state:"+state+"+county:"+county;
 					JSONArray jsont=readJsonFromUrl(censusURL);
 					if(censusT[dl]==null){
 						censusT[dl]=jsont;
 					}else{
-						for(int i=1;i<json.size();i++){
-							censusT[dl].add(json.get(i));
+						for(int i=1;i<jsont.size();i++){
+							censusT[dl].add(jsont.get(i));
 						}
 					}	
 				}
@@ -84,15 +81,92 @@ public class GetCensus {
 			}
 			//Blockgroup Table
 			
-			//TODO: Create SQLString to create table
-			
-			//TODO: Iterate through JSON Array
-			
-			//TODO: Output Table
-			
-			//TODO: Rinse, lather, repeat
-			
-			//TODO: Insert coin and play again
+			String baseInsertSQL="";
+			for(int dl=0;dl<cInt(jConfig.getProperty("DataLists"));dl++){
+				System.out.println("Writing BlockGroup Table "+(dl+1)+" of "+jConfig.getProperty("DataLists"));
+				String dataListToDo="DataList"+(dl+1);
+				File outputDBF=new File((String) jConfig.get("InputDataPath")+"\\"+dataListToDo+"BG.dbf");
+				if(outputDBF.exists())
+					outputDBF.delete();
+				sql="CREATE TABLE "+dataListToDo+"BG (";
+				baseInsertSQL="INSERT INTO "+dataListToDo+"BG (";
+				Object temp=censusBG[dl].get(0);
+				if(temp instanceof ArrayList<?>){
+					ArrayList<?> tempAL=(ArrayList<?>)temp;
+					for(Object f:tempAL){	
+						String sf=(String)f;
+						String newsf=sf.replaceAll("\\s", "");
+						sql+=newsf+" INTEGER NULL, ";
+						baseInsertSQL+=newsf+", ";
+					}
+				}
+				sql=sql.substring(0, sql.length()-2); //remove comma at the end
+				baseInsertSQL=baseInsertSQL.substring(0, baseInsertSQL.length()-2);
+				sql+=")";
+				baseInsertSQL+=") VALUES (";
+				int updateQuery=stmt.executeUpdate(sql);
+				
+				for(int r=1;r<censusBG[dl].size();r++){
+					Object row=censusBG[dl].get(r);
+					sql=baseInsertSQL;
+					if(row instanceof ArrayList<?>){
+						ArrayList<?> rowAL=(ArrayList<?>)row;
+						for(Object val:rowAL){
+							//if(((String)val).equalsIgnoreCase("null"))
+							//	sql+=".Null., ";
+							//else
+								sql+=(String)val+", ";
+						}
+					}
+					sql=sql.substring(0, sql.length()-2); //remove comma at the end
+					sql+=")";
+				
+					int updateQuery2=stmt.executeUpdate(sql);
+				}
+				
+				//Tract Table
+				baseInsertSQL="";
+				System.out.println("Writing Tract Table "+(dl+1)+" of "+jConfig.getProperty("DataLists"));
+				dataListToDo="DataList"+(dl+1);
+				File outputDBF2=new File((String) jConfig.get("InputDataPath")+"\\"+dataListToDo+"T.dbf");
+					if(outputDBF2.exists())
+						outputDBF2.delete();
+					sql="CREATE TABLE "+dataListToDo+"T (";
+					baseInsertSQL="INSERT INTO "+dataListToDo+"T (";
+					Object temp2=censusT[dl].get(0);
+					if(temp2 instanceof ArrayList<?>){
+						ArrayList<?> tempAL=(ArrayList<?>)temp2;
+						for(Object f:tempAL){	
+							String sf=(String)f;
+							String newsf=sf.replaceAll("\\s", "");
+							sql+=newsf+" INTEGER NULL, ";
+							baseInsertSQL+=newsf+", ";
+						}
+					}
+					sql=sql.substring(0, sql.length()-2); //remove comma at the end
+					baseInsertSQL=baseInsertSQL.substring(0, baseInsertSQL.length()-2);
+					sql+=")";
+					baseInsertSQL+=") VALUES (";
+					updateQuery=stmt.executeUpdate(sql);
+					
+					for(int r=1;r<censusT[dl].size();r++){
+						Object row=censusT[dl].get(r);
+						sql=baseInsertSQL;
+						if(row instanceof ArrayList<?>){
+							ArrayList<?> rowAL=(ArrayList<?>)row;
+							for(Object val:rowAL){
+								//if(((String)val).equalsIgnoreCase("null"))
+								//	sql+=".Null., ";
+								//else
+									sql+=(String)val+", ";
+							}
+						}
+						sql=sql.substring(0, sql.length()-2); //remove comma at the end
+						sql+=")";
+					
+						int updateQuery2=stmt.executeUpdate(sql);
+					}
+			}
 			
 			
 		}catch(Exception e){
